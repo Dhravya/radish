@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dhravya/go-redis/go-redisproto"
+	"github.com/dhravya/go-redis/redisproto"
 )
 
 type Transaction struct {

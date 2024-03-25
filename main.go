@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dhravya/go-redis/go-redisproto"
+	"github.com/dhravya/go-redis/redisproto"
 )
 
 type DataType int
