@@ -22,6 +22,8 @@ Should you use this in production? Probably, probably not. It's not battle teste
 
 I even made a cute mascot (Godis crushing Redis)
 
+Annddd all i ask in return is a little ⭐ so that i dont have to rely on twitter for my dopamine hit.
+
 ![Godis](assets/godis.png)
 
 ## 📜 Features
