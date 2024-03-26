@@ -91,7 +91,7 @@ docker run -d -p 6379:6379 dhravyashah/go-redis
 ### Using `go`
 
 ```
-go get github.com/dhrvyashah/go-redis
+go install github.com/dhrvyashah/go-redis@latest
 ```
 
 and then just build and run the binary
