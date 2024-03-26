@@ -139,8 +139,7 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		for i := len(values) - 1; i >= 0; i-- {
 			kv.Lists[key] = append([]string{values[i]}, kv.Lists[key]...)
 		}
-		return fmt.Sprintf("(integer) %d", len(kv.Lists[key]))
-	
+		return fmt.Sprintf("(integer) %d", len(kv.Lists[key]))	
 	case "LPOP":
 		if len(parts) != 2 {
 			return "ERROR: LPOP requires 1 argument"
@@ -326,8 +325,7 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		}
 		key, value := parts[1], parts[2]
 		kv.Strings[key] = value
-		return "OK"
-	
+		return "OK"	
 	case "GET":
 		if len(parts) != 2 {
 			return "ERROR: GET requires 1 argument"
@@ -339,7 +337,6 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 			return value
 		}
 		return "(nil)"
-
 	case "APPEND":
 		if len(parts) != 3 {
 			return "ERROR: APPEND requires 2 arguments"
@@ -352,8 +349,7 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		} else {
 			kv.Strings[key] = valueToAppend
 		}
-		return "OK"
-	
+		return "OK"	
 	case "DEL":
 		if len(parts) < 2 {
 			return "ERROR: DEL requires at least 1 argument"
@@ -377,7 +373,6 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 			}
 		}
 		return fmt.Sprintf("(integer) %d", count)
-	
 	case "EXISTS":
 		if len(parts) != 2 {
 			return "ERROR: EXISTS requires 1 argument"
@@ -393,7 +388,6 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 			return "(integer) 1"
 		}
 		return "(integer) 0"
-	
 	case "KEYS":
 		if len(parts) != 2 {
 			return "ERROR: KEYS requires 1 argument"
@@ -408,8 +402,7 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 			}
 		}
 		// Optionally, search in other data structures
-		return strings.TrimSpace(matchedKeys)
-	
+		return strings.TrimSpace(matchedKeys)	
 	case "EXPIRE":
 		if len(parts) != 3 {
 			return "ERROR: EXPIRE requires 2 arguments"
@@ -424,7 +417,6 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		expirationTime := time.Now().Add(time.Duration(seconds) * time.Second)
 		kv.Expirations[key] = expirationTime
 		return "OK"
-	
 	case "TTL":
 		if len(parts) != 2 {
 			return "ERROR: TTL requires 1 argument"
@@ -576,7 +568,6 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 			return strings.Join(result, " ")
 		}
 		return "(empty sorted set)"
-	
 	case "ZREM":
 		if len(parts) < 3 {
 			return "ERR ZREM requires at least 2 arguments"
@@ -601,8 +592,7 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 			kv.SortedSets[key] = sortedSet // Important to assign the modified slice back
 			return fmt.Sprintf("(integer) %d", removed)
 		}
-		return "(integer) 0"
-	
+		return "(integer) 0"	
 	case "MULTI":
 		tx, err := kv.MultiCommand()
 		if err != nil {
