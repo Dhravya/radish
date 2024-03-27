@@ -1,7 +1,7 @@
 <div align="center">
 <!-- logo -->
 <img src = "assets/icon.png" width="300">
-<h1 align="center">Go-Redis</h1>
+<h1 align="center">Radish</h1>
 <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" /><br> 
 Super fast drop-in replacement of the in memory key-value store redis in golang
 </div>
@@ -11,7 +11,7 @@ Super fast drop-in replacement of the in memory key-value store redis in golang
 [Try it out instantly](#installation)
 
 ## 👀 What is this? Why?
-`go-redis` is a super fast drop-in replacement of the in memory key-value store redis, built with golang.
+`Radish` is a super fast drop-in replacement of the in memory key-value store redis, built with golang.
 
 Why? 
 Redis recently (Last week, as of Mar 25 2024) changed their license to a [dual 'source-available' license](https://news.ycombinator.com/item?id=39772562) - which means that it can't be used for commercial purposes without paying for a license. Everyone hated it. This is a problem for many companies and developers who use redis in their projects. 
@@ -28,25 +28,25 @@ Annddd all i ask in return is a little ⭐ so that i dont have to rely on twitte
 
 ## 📜 Features
 
-| Feature                   | Redis | Go-Redis |
-| ------------------------- | ----- | -------- |
-| In-memory key-value store | ✅     | ✅        |
-| Strings                   | ✅     | ✅        |
-| Lists                     | ✅     | ✅        |
-| Sets                      | ✅     | ✅        |
-| Sorted sets               | ✅     | ✅        |
-| Hashes                    | ✅     | ✅        |
-| Streams                   | ✅     | ❌        |
-| HyperLogLogs              | ✅     | ❌        |
-| Bitmaps                   | ✅     | ❌        |
-| Persistence               | ✅     | ✅        |
-| Pub/Sub                   | ✅     | ✅        |
-| Transactions              | ✅     | ✅        |
-| Lua scripting             | ✅     | ❌        |
-| LRU eviction              | ✅     | ❌        |
-| TTL                       | ✅     | 😅        |
-| Clustering                | ✅     | ❌        |
-| Auth                      | ✅     | ❌        |
+| Feature                   | Redis | Radish |
+| ------------------------- | ----- | ------ |
+| In-memory key-value store | ✅     | ✅      |
+| Strings                   | ✅     | ✅      |
+| Lists                     | ✅     | ✅      |
+| Sets                      | ✅     | ✅      |
+| Sorted sets               | ✅     | ✅      |
+| Hashes                    | ✅     | ✅      |
+| Streams                   | ✅     | ❌      |
+| HyperLogLogs              | ✅     | ❌      |
+| Bitmaps                   | ✅     | ❌      |
+| Persistence               | ✅     | ✅      |
+| Pub/Sub                   | ✅     | ✅      |
+| Transactions              | ✅     | ✅      |
+| Lua scripting             | ✅     | ❌      |
+| LRU eviction              | ✅     | ❌      |
+| TTL                       | ✅     | 😅      |
+| Clustering                | ✅     | ❌      |
+| Auth                      | ✅     | ❌      |
 
 ### Available commands
 
@@ -85,13 +85,13 @@ For now, these commands are available (more to come)
 To get it up and running instantly, you can use the docker image
 
 ```
-docker run -d -p 6379:6379 dhravyashah/go-redis
+docker run -d -p 6379:6379 dhravyashah/radish
 ```
 
 ### Using `go`
 
 ```
-go get github.com/dhrvyashah/go-redis
+go install github.com/dhrvyashah/radish@latest
 ```
 
 and then just build and run the binary
@@ -99,10 +99,10 @@ and then just build and run the binary
 
 ### Using the binary
 
-Download the binary executables from `./bin/go-redis`.
+Download the binary executables from `./bin/radish`.
 
 Click here to get it [instantly](
-    https://github.com/dhrvyashah/go-redis/releases/download/v0.1.0/go-redis-0.1.0-linux-amd64.tar.gz).
+    https://github.com/dhrvyashah/radish/releases/download/v0.1.0/radish-0.1.0-linux-amd64.tar.gz).
 
 
 ## Having fun
@@ -129,12 +129,12 @@ bar
 ```
 
 ## Contributing
-Go-redis is *completely* open source. If you want to contribute, please create an issue on the repo and I will assign the task to someone (or you).
+radish is *completely* open source. If you want to contribute, please create an issue on the repo and I will assign the task to someone (or you).
 
 Steps to contribute:
 1. Clone the repo
 ```
-git clone https://github.com/dhravya/go-redis
+git clone https://github.com/dhravya/radish
 ```
 
 2. Create a new branch
@@ -153,4 +153,4 @@ You can also join our [Discord server](https://discord.gg/z7MZYhmx6w) where we h
 
 ## License
 
-Unlike redis, go-redis is licensed under the MIT license. You can use it for commercial purposes without any restrictions. Go wild!
+Unlike redis, radish is licensed under the MIT license. You can use it for commercial purposes without any restrictions. Go wild!

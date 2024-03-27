@@ -3,8 +3,9 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"github.com/dhravya/go-redis/redisproto"
 	"log"
+
+	"github.com/dhravya/radish/redisproto"
 )
 
 func main() {

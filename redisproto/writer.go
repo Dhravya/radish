@@ -145,7 +145,7 @@ func (w *Writer) WriteBulks(bulks ...[]byte) error {
 
 // WriteObjectsSlice works like WriteObjects, it useful when args is a slice that can be nil,
 // in that case WriteObjects(nil) will understand as response 1 element array (nil element)
-// see https://github.com/secmask/go-redisproto/issues/4 for details.
+// see https://github.com/secmask/radishproto/issues/4 for details.
 func (w *Writer) WriteObjectsSlice(args []interface{}) error {
 	return w.WriteObjects(args...)
 }
