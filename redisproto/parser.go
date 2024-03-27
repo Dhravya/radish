@@ -198,6 +198,13 @@ func (r *Parser) parseBinary() (*Command, error) {
 			if e = r.requireNBytes(plen); e != nil {
 				return nil, e
 			}
+			eol := bytes.IndexByte(r.buffer[r.parsePosition:], '\n')
+			if eol == -1 {
+				return nil, ErrInvalidBulkSize
+			}
+			if r.parsePosition+plen+1 != eol+r.parsePosition {
+				return nil, ErrInvalidBulkSize
+			}
 			argv = append(argv, r.buffer[r.parsePosition:(r.parsePosition+plen)])
 			r.parsePosition += plen
 		default:

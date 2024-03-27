@@ -91,7 +91,7 @@ docker run -d -p 6379:6379 dhravyashah/radish
 ### Using `go`
 
 ```
-go install github.com/dhrvyashah/radish@latest
+go install github.com/dhravya/radish@latest && radish
 ```
 
 and then just build and run the binary
