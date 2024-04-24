@@ -15,7 +15,7 @@ Super fast drop-in replacement of the in memory key-value store redis in golang
 
 ---
 
-**Redis recently switched to a new 'source-available' license, causing frustration among users.** 
+**Redis recently switched to a new [dual 'source-available' license](https://news.ycombinator.com/item?id=39772562) , causing frustration among users.** 
 
 To address this, **I created a solution in Go.** 
 
