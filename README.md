@@ -13,16 +13,19 @@ Super fast drop-in replacement of the in memory key-value store redis in golang
 ## 👀 What is this? Why?
 `Radish` is a super fast drop-in replacement of the in memory key-value store redis, built with golang.
 
-Why? 
-Redis recently (Last week, as of Mar 25 2024) changed their license to a [dual 'source-available' license](https://news.ycombinator.com/item?id=39772562) - which means that it can't be used for commercial purposes without paying for a license. Everyone hated it. This is a problem for many companies and developers who use redis in their projects. 
+---
 
-And, I was kinda bored and wanted to learn golang properly, so I built this.
+**Redis recently switched to a new 'source-available' license, causing frustration among users.** 
 
-Should you use this in production? Probably, probably not. It's not battle tested yet, but i (as a single person team) have tried to do my best to make it as reliable as possible.
+To address this, **I created a solution in Go.** 
 
-I even made a cute mascot (Godis crushing Redis)
+While not battle-tested, **it's my best effort for reliability.** 
 
-Annddd all i ask in return is a little ⭐ so that i dont have to rely on twitter for my dopamine hit.
+Plus, **it comes with a cute mascot!** 
+
+All I ask is **a ⭐ to keep me off Twitter for dopamine hits.**
+
+---
 
 ![Godis](assets/godis.png)
 
