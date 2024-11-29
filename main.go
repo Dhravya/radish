@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/gob"
+	"flag"
 	"fmt"
 	"net"
 	"runtime"
@@ -829,6 +830,9 @@ func handleConnection(conn net.Conn, kv *KeyValueStore) {
 }
 
 func main() {
+    dataFile := flag.String("dataFile", "data.gob", "Path where the 'data.gob'-file is located/created")
+    flag.Parse()
+
     listener, err := net.Listen("tcp", ":6379")
 	kv := NewKeyValueStore()
 
@@ -839,7 +843,7 @@ func main() {
     defer listener.Close()
     fmt.Println("Listening on :6379")
 
-	persistence = NewPersistence(kv, "data.gob")
+	persistence = NewPersistence(kv, *dataFile)
 
 	kv = persistence.kv
 	
