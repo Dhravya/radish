@@ -793,7 +793,10 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 
 func handleConnection(conn net.Conn, kv *KeyValueStore) {
     defer conn.Close()
-    kv.connectedClients[conn.RemoteAddr().String()] = conn
+
+	kv.mu.Lock()
+	kv.connectedClients[conn.RemoteAddr().String()] = conn
+	kv.mu.Unlock()
 
     parser := redisproto.NewParser(conn)
     writer := redisproto.NewWriter(bufio.NewWriter(conn))
