@@ -28,9 +28,9 @@ func (kv *KeyValueStore) MultiCommand() (*Transaction, error) {
 
 func (tx *Transaction) ExecCommand() string {
 	fmt.Println("Executing transaction")
-    if tx == nil || tx.Kv == nil || tx.Kv.CurrentTx != tx {
-        return "ERR EXEC without MULTI"
-    }
+	if tx == nil || tx.Kv == nil || tx.Kv.CurrentTx != tx {
+		return "ERR EXEC without MULTI"
+	}
 
 	for _, command := range tx.Commands {
 		parts := make([]string, command.ArgCount())

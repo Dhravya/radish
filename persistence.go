@@ -14,47 +14,46 @@ type Persistence struct {
 	shouldSave bool
 }
 
-
 func NewPersistence(kv *KeyValueStore, dataFile string) *Persistence {
-    p := &Persistence{
-        kv:       kv,
-        dataFile: dataFile,
-    }
+	p := &Persistence{
+		kv:       kv,
+		dataFile: dataFile,
+	}
 
-    err := p.loadData()
-    if err != nil {
-        log.Printf("Error loading data: %v", err)
-    }
+	err := p.loadData()
+	if err != nil {
+		log.Printf("Error loading data: %v", err)
+	}
 
-    return p
+	return p
 }
 
 // Add a method to set shouldSave to true
 func (p *Persistence) MarkAsDirty() {
-    p.mu.Lock()
-    defer p.mu.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-    p.shouldSave = true
+	p.shouldSave = true
 }
 
 func (p *Persistence) loadData() error {
-    p.mu.Lock()
-    defer p.mu.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-    file, err := os.Open(p.dataFile)
-    if err != nil {
-        return err
-    }
-    defer file.Close()
+	file, err := os.Open(p.dataFile)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
 
-    dec := gob.NewDecoder(file)
+	dec := gob.NewDecoder(file)
 
-    err = dec.Decode(p.kv)
-    if err != nil {
-        return err
-    }
+	err = dec.Decode(p.kv)
+	if err != nil {
+		return err
+	}
 
-    return nil
+	return nil
 }
 
 func (p *Persistence) saveData() error {
