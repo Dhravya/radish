@@ -41,7 +41,7 @@ func (w *Writer) Flush() error {
 
 func (w *Writer) WriteInt(val int64) error {
 	w.Write(colon)
-	w.Write(strconv.AppendInt(nil,val,10))
+	w.Write(strconv.AppendInt(nil, val, 10))
 	_, err := w.Write(newLine)
 	return err
 }
@@ -52,7 +52,7 @@ func (w *Writer) WriteBulk(val []byte) error {
 		return err
 	}
 	w.Write(dollar)
-	w.Write(strconv.AppendUint(nil,uint64(len(val)),10))
+	w.Write(strconv.AppendUint(nil, uint64(len(val)), 10))
 	w.Write(newLine)
 	w.Write(val)
 	_, err := w.Write(newLine)
@@ -84,7 +84,7 @@ func (w *Writer) WriteObjects(objs ...interface{}) error {
 	}
 
 	w.Write(star)
-	w.Write(strconv.AppendUint(nil,uint64(len(objs)),10))
+	w.Write(strconv.AppendUint(nil, uint64(len(objs)), 10))
 	w.Write(newLine)
 
 	numArg := len(objs)
@@ -132,7 +132,7 @@ func (w *Writer) WriteBulks(bulks ...[]byte) error {
 
 	w.Write(star)
 	numElement := len(bulks)
-	w.Write(strconv.AppendUint(nil,uint64(numElement),10))
+	w.Write(strconv.AppendUint(nil, uint64(numElement), 10))
 	w.Write(newLine)
 
 	for i := 0; i < numElement; i++ {
@@ -163,7 +163,7 @@ func (w *Writer) WriteBulkStrings(bulks []string) error {
 
 	w.Write(star)
 	numElement := len(bulks)
-	w.Write(strconv.AppendUint(nil,uint64(numElement),10))
+	w.Write(strconv.AppendUint(nil, uint64(numElement), 10))
 	w.Write(newLine)
 
 	for i := 0; i < numElement; i++ {

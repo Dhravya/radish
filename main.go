@@ -32,22 +32,21 @@ type sortedSetMember struct {
 }
 
 type KeyValueStore struct {
-	Strings     map[string]string
-	Lists       map[string][]string
-	Hashes      map[string]map[string]string
-	Sets        map[string]map[string]struct{}
-	SortedSets map[string][]sortedSetMember
-	Expirations map[string]time.Time
-	mu          sync.RWMutex
-	CurrentTx   *Transaction
+	Strings                map[string]string
+	Lists                  map[string][]string
+	Hashes                 map[string]map[string]string
+	Sets                   map[string]map[string]struct{}
+	SortedSets             map[string][]sortedSetMember
+	Expirations            map[string]time.Time
+	mu                     sync.RWMutex
+	CurrentTx              *Transaction
 	totalCommandsProcessed int
-	connectedClients map[string]net.Conn
+	connectedClients       map[string]net.Conn
 }
 
 var pubsub = NewPubSub()
 var persistence *Persistence
 var serverStartTime = time.Now()
-
 
 func init() {
 	gob.Register(map[string]string{})
@@ -61,14 +60,14 @@ func init() {
 
 func NewKeyValueStore() *KeyValueStore {
 	return &KeyValueStore{
-		Strings:    make(map[string]string),
-		Lists:      make(map[string][]string),
-		Hashes:     make(map[string]map[string]string),
-		Sets:       make(map[string]map[string]struct{}),
-		SortedSets: make(map[string][]sortedSetMember),
-		Expirations: make(map[string]time.Time),
+		Strings:                make(map[string]string),
+		Lists:                  make(map[string][]string),
+		Hashes:                 make(map[string]map[string]string),
+		Sets:                   make(map[string]map[string]struct{}),
+		SortedSets:             make(map[string][]sortedSetMember),
+		Expirations:            make(map[string]time.Time),
 		totalCommandsProcessed: 0,
-		connectedClients: make(map[string]net.Conn),
+		connectedClients:       make(map[string]net.Conn),
 	}
 }
 
@@ -102,11 +101,11 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 
 	fmt.Println("Command:", parts[0])
 	switch parts[0] {
-	
+
 	case "INFO":
 		kv.mu.Lock()
 		defer kv.mu.Unlock()
-	
+
 		// Calculate server uptime
 		uptimeSeconds := int(time.Since(serverStartTime).Seconds())
 
@@ -115,7 +114,7 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		memoryUsage := runtime.MemStats{}
 		runtime.ReadMemStats(&memoryUsage)
 		connectedClients := len(kv.connectedClients) // Example of how you might track connected clients
-	
+
 		// Building the INFO response
 		var infoBuilder strings.Builder
 		infoBuilder.WriteString("# Server\r\n")
@@ -123,7 +122,7 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		infoBuilder.WriteString(fmt.Sprintf("total_commands_processed:%d\r\n", totalCommandsProcessed))
 		infoBuilder.WriteString(fmt.Sprintf("used_memory:%d\r\n", memoryUsage.Alloc)) // Using Alloc as an example of memory usage
 		infoBuilder.WriteString(fmt.Sprintf("connected_clients:%d\r\n", connectedClients))
-	
+
 		return infoBuilder.String()
 	case "LPUSH":
 		if len(parts) < 3 {
@@ -133,14 +132,14 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		defer kv.mu.Unlock()
 		key := parts[1]
 		values := parts[2:]
-		
+
 		if _, exists := kv.Lists[key]; !exists {
 			kv.Lists[key] = make([]string, 0)
 		}
 		for i := len(values) - 1; i >= 0; i-- {
 			kv.Lists[key] = append([]string{values[i]}, kv.Lists[key]...)
 		}
-		return fmt.Sprintf("(integer) %d", len(kv.Lists[key]))	
+		return fmt.Sprintf("(integer) %d", len(kv.Lists[key]))
 	case "LPOP":
 		if len(parts) != 2 {
 			return "ERROR: LPOP requires 1 argument"
@@ -198,11 +197,11 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		if err != nil {
 			return "ERROR: LRANGE end index must be an integer"
 		}
-	
+
 		if _, exists := kv.Lists[key]; !exists {
 			return "ERROR: no such key"
 		}
-	
+
 		if start < 0 {
 			start = len(kv.Lists[key]) + start
 		}
@@ -215,8 +214,8 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		if end >= len(kv.Lists[key]) {
 			end = len(kv.Lists[key]) - 1
 		}
-	
-		return fmt.Sprintf("%v", strings.Join(kv.Lists[key][start : end+1], " "))
+
+		return fmt.Sprintf("%v", strings.Join(kv.Lists[key][start:end+1], " "))
 	case "LLEN":
 		if len(parts) != 2 {
 			return "ERR LLEN requires 1 argument"
@@ -326,7 +325,7 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		}
 		key, value := parts[1], parts[2]
 		kv.Strings[key] = value
-		return "OK"	
+		return "OK"
 	case "GET":
 		if len(parts) != 2 {
 			return "ERROR: GET requires 1 argument"
@@ -350,7 +349,7 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		} else {
 			kv.Strings[key] = valueToAppend
 		}
-		return "OK"	
+		return "OK"
 	case "DEL":
 		if len(parts) < 2 {
 			return "ERROR: DEL requires at least 1 argument"
@@ -403,7 +402,7 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 			}
 		}
 		// Optionally, search in other data structures
-		return strings.TrimSpace(matchedKeys)	
+		return strings.TrimSpace(matchedKeys)
 	case "EXPIRE":
 		if len(parts) != 3 {
 			return "ERROR: EXPIRE requires 2 arguments"
@@ -433,7 +432,7 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 			// Key expired, clean up
 			delete(kv.Expirations, key)
 			delete(kv.Strings, key) // Also consider cleaning up from other data structures
-			return "(integer) -2" // Indicate the key does not exist (expired)
+			return "(integer) -2"   // Indicate the key does not exist (expired)
 		}
 		return "(integer) -1"
 	case "SADD":
@@ -466,7 +465,7 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 			for member := range set {
 				members = append(members, member)
 			}
-			sort.Strings(members)  // Sort the slice
+			sort.Strings(members) // Sort the slice
 			return strings.Join(members, " ")
 		}
 		return "(empty set)"
@@ -545,7 +544,7 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		if err != nil {
 			return "ERR ZRANGE invalid stop index"
 		}
-	
+
 		if sortedSet, exists := kv.SortedSets[key]; exists {
 			// Adjusting start and stop for negative values
 			if start < 0 {
@@ -561,7 +560,7 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 			if stop >= len(sortedSet) {
 				stop = len(sortedSet) - 1
 			}
-	
+
 			result := make([]string, 0)
 			for i := start; i <= stop && i < len(sortedSet); i++ {
 				result = append(result, sortedSet[i].Member)
@@ -593,7 +592,7 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 			kv.SortedSets[key] = sortedSet // Important to assign the modified slice back
 			return fmt.Sprintf("(integer) %d", removed)
 		}
-		return "(integer) 0"	
+		return "(integer) 0"
 	case "MULTI":
 		tx, err := kv.MultiCommand()
 		if err != nil {
@@ -610,7 +609,7 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		return kv.CurrentTx.ExecCommand()
 	case "DISCARD":
 		kv.mu.Lock()
-    	defer kv.mu.Unlock()
+		defer kv.mu.Unlock()
 		if kv.CurrentTx == nil {
 			return "ERR DISCARD without MULTI"
 		}
@@ -792,29 +791,29 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 }
 
 func handleConnection(conn net.Conn, kv *KeyValueStore) {
-    defer conn.Close()
+	defer conn.Close()
 
 	kv.mu.Lock()
 	kv.connectedClients[conn.RemoteAddr().String()] = conn
 	kv.mu.Unlock()
 
-    parser := redisproto.NewParser(conn)
-    writer := redisproto.NewWriter(bufio.NewWriter(conn))
+	parser := redisproto.NewParser(conn)
+	writer := redisproto.NewWriter(bufio.NewWriter(conn))
 
-    for {
-        command, err := parser.ReadCommand()
-        if err != nil {
-            _, ok := err.(*redisproto.ProtocolError)
-            if ok {
-                ew := writer.WriteError(err.Error())
-                if ew != nil {
-                    fmt.Println("Error writing response:", ew)
-                    break
-                }
-            } else {
-                fmt.Println(err, "closed connection to", conn.RemoteAddr())
-                break
-            }
+	for {
+		command, err := parser.ReadCommand()
+		if err != nil {
+			_, ok := err.(*redisproto.ProtocolError)
+			if ok {
+				ew := writer.WriteError(err.Error())
+				if ew != nil {
+					fmt.Println("Error writing response:", ew)
+					break
+				}
+			} else {
+				fmt.Println(err, "closed connection to", conn.RemoteAddr())
+				break
+			}
 		} else {
 			response := kv.CommandHandler(command)
 			if response != "" {
@@ -826,38 +825,38 @@ func handleConnection(conn net.Conn, kv *KeyValueStore) {
 			}
 		}
 
-        if command.IsLast() {
-            writer.Flush()
-        }
-    }
+		if command.IsLast() {
+			writer.Flush()
+		}
+	}
 }
 
 func main() {
-    dataFile := flag.String("dataFile", "data.gob", "Path where the 'data.gob'-file is located/created")
-    flag.Parse()
+	dataFile := flag.String("dataFile", "data.gob", "Path where the 'data.gob'-file is located/created")
+	flag.Parse()
 
-    listener, err := net.Listen("tcp", ":6379")
+	listener, err := net.Listen("tcp", ":6379")
 	kv := NewKeyValueStore()
 
-    if err != nil {
-        fmt.Println("Error listening:", err.Error())
-        return
-    }
-    defer listener.Close()
-    fmt.Println("Listening on :6379")
+	if err != nil {
+		fmt.Println("Error listening:", err.Error())
+		return
+	}
+	defer listener.Close()
+	fmt.Println("Listening on :6379")
 
 	persistence = NewPersistence(kv, *dataFile)
 
 	kv = persistence.kv
-	
+
 	go persistence.backgroundSave()
 
-    for {
-        conn, err := listener.Accept()
-        if err != nil {
-            fmt.Println("Error accepting: ", err.Error())
-            return
-        }
-        go handleConnection(conn, kv)
-    }
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			fmt.Println("Error accepting: ", err.Error())
+			return
+		}
+		go handleConnection(conn, kv)
+	}
 }
