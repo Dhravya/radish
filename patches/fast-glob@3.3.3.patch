@@ -1,0 +1,57 @@
+diff --git a/node_modules/fast-glob/.bun-tag-9163636e17959da7 b/.bun-tag-9163636e17959da7
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/node_modules/fast-glob/esm-shim.mjs b/esm-shim.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..fa0cb039471602ef8c81136a5debc487f4a47a6f
+--- /dev/null
++++ b/esm-shim.mjs
+@@ -0,0 +1,19 @@
++import { createRequire } from "node:module";
++
++const require = createRequire(import.meta.url);
++const fg = require("./out/index.js");
++
++export const sync = fg.sync;
++export const stream = fg.stream;
++export const async = fg.async;
++export const glob = fg.glob;
++export const globSync = fg.globSync;
++export const globStream = fg.globStream;
++export const generateTasks = fg.generateTasks;
++export const isDynamicPattern = fg.isDynamicPattern;
++export const escapePath = fg.escapePath;
++export const convertPathToPattern = fg.convertPathToPattern;
++export const posix = fg.posix;
++export const win32 = fg.win32;
++
++export default fg;
+diff --git a/out/index.js b/out/index.js
+index 90365d488084954a83fc712cd997eb98bf45e21c..fc9b002adb2b0ca6a47ac5c517f7d15f1673c29a 100644
+--- a/out/index.js
++++ b/out/index.js
+@@ -100,3 +100,5 @@ function assertPatternsInput(input) {
+     }
+ }
+ module.exports = FastGlob;
++
++module.exports.default = FastGlob;
+diff --git a/package.json b/package.json
+index e910de93f5022ec52223063e049cae8fa03dabc2..bb2372a7c2a28d6d5bdc997015be44ea32ff2f5a 100644
+--- a/package.json
++++ b/package.json
+@@ -77,5 +77,13 @@
+     "bench:regression:async": "hereby bench:regression:async",
+     "bench:regression:sync": "hereby bench:regression:sync",
+     "bench:regression:stream": "hereby bench:regression:stream"
++  },
++  "exports": {
++    ".": {
++      "import": "./esm-shim.mjs",
++      "require": "./out/index.js",
++      "default": "./out/index.js"
++    },
++    "./package.json": "./package.json"
+   }
+ }
+\ No newline at end of file

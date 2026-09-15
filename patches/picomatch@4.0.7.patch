@@ -1,0 +1,41 @@
+diff --git a/node_modules/picomatch/esm-shim.mjs b/esm-shim.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..acf9de16c838ebf42945f7fbec48b7cd3ac0ba9e
+--- /dev/null
++++ b/esm-shim.mjs
+@@ -0,0 +1,16 @@
++import { createRequire } from "node:module";
++
++const require = createRequire(import.meta.url);
++const picomatch = require("./index.js");
++
++export const makeRe = picomatch.makeRe;
++export const scan = picomatch.scan;
++export const parse = picomatch.parse;
++export const test = picomatch.test;
++export const matchBase = picomatch.matchBase;
++export const isMatch = picomatch.isMatch;
++export const compileRe = picomatch.compileRe;
++export const toRegex = picomatch.toRegex;
++export const constants = picomatch.constants;
++
++export default picomatch;
+diff --git a/package.json b/package.json
+index ab3cf809d60f53a0b5f9ba2c11ccbc42644e431e..4f30218fe605121e388d819a1584f8b7fc6a3f7c 100644
+--- a/package.json
++++ b/package.json
+@@ -79,5 +79,13 @@
+       "nanomatch",
+       "picomatch"
+     ]
++  },
++  "exports": {
++    ".": {
++      "import": "./esm-shim.mjs",
++      "require": "./index.js",
++      "default": "./index.js"
++    },
++    "./package.json": "./package.json"
+   }
+ }
+\ No newline at end of file

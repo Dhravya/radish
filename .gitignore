@@ -1,2 +1,8 @@
-*.env*
-*.gob
+node_modules/
+.alchemy/
+.wrangler/
+dist/
+*.log
+.env*
+!.env.example
+.radish-token

@@ -1,0 +1,36 @@
+{
+  "name": "radish",
+  "version": "0.1.0",
+  "description": "Redis-compatible server on Cloudflare Durable Objects \u2014 single-writer, durable, SQLite-backed, with an R2 cold tier.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun alchemy dev",
+    "shim": "bun run shim/tcp-shim.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "deploy": "bun alchemy deploy --yes",
+    "destroy": "bun alchemy destroy --yes",
+    "diff": "bun run test/differential.ts"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "@effect/platform-bun": "4.0.0-rc.112",
+    "@effect/platform-node": "4.0.0-rc.112",
+    "alchemy": "^2.0.0-beta.77",
+    "effect": "4.0.0-rc.112"
+  },
+  "overrides": {
+    "effect": "4.0.0-rc.112",
+    "@effect/platform-node-shared": "4.0.0-rc.112",
+    "@effect/platform-bun": "4.0.0-rc.112",
+    "@effect/platform-node": "4.0.0-rc.112"
+  },
+  "patchedDependencies": {
+    "fast-glob@3.3.3": "patches/fast-glob@3.3.3.patch",
+    "picomatch@4.0.7": "patches/picomatch@4.0.7.patch"
+  }
+}
