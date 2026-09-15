@@ -5,13 +5,16 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun alchemy dev",
+    "dev": "./scripts/alchemy dev",
     "shim": "bun run shim/tcp-shim.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "deploy": "bun alchemy deploy --yes",
-    "destroy": "bun alchemy destroy --yes",
-    "diff": "bun run test/differential.ts"
+    "deploy": "./scripts/alchemy deploy --yes",
+    "destroy": "./scripts/alchemy destroy --yes",
+    "diff": "bun run test/differential.ts",
+    "auth": "./scripts/alchemy profile refresh --provider Cloudflare",
+    "web": "cd web && bun run dev",
+    "web:build": "cd web && bun run build"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",

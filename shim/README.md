@@ -32,7 +32,7 @@ bun shim/tcp-shim.ts
 ```
   radish tcp-shim
   listening   127.0.0.1:6379
-  upstream    ws://localhost:8787/connect
+  upstream    ws://localhost:1337/connect
   try         redis-cli -p 6379 ping
 ```
 
@@ -40,7 +40,7 @@ bun shim/tcp-shim.ts
 |---|---|---|---|
 | `--port <n>` | `PORT` | `6379` | TCP port to listen on |
 | `--host <addr>` | `HOST` | `127.0.0.1` | interface to bind; use `0.0.0.0` to expose |
-| `--upstream <url>` | `UPSTREAM` | `ws://localhost:8787/connect` | the Worker. `http(s)://` is accepted and mapped to `ws(s)://`, because that is what `wrangler dev` prints |
+| `--upstream <url>` | `UPSTREAM` | `ws://localhost:1337/connect` | the Worker. `http(s)://` is accepted and mapped to `ws(s)://`, because that is what `wrangler dev` prints |
 | `--tls` / `--no-tls` | `TLS=1｜0` | from the URL scheme | force `wss://` or `ws://` |
 | `--stats [ms]` | — | off (`5000` under `--debug`) | periodic live-connection line |
 | `--debug` | `DEBUG=1` | off | log every frame |
@@ -63,7 +63,7 @@ binds an ephemeral port and `shim.port` reports which one:
 ```ts
 import { startShim } from "./shim/tcp-shim.ts";
 
-const shim = startShim({ port: 0, upstream: "ws://localhost:8787/connect" });
+const shim = startShim({ port: 0, upstream: "ws://localhost:1337/connect" });
 // … shim.port, shim.stats() …
 await shim.stop();
 ```

@@ -2,7 +2,7 @@ import type { Socket, TCPSocketListener } from "bun";
 
 const DEFAULT_PORT = 6379;
 const DEFAULT_HOSTNAME = "127.0.0.1";
-const DEFAULT_UPSTREAM = "ws://localhost:8787/connect";
+const DEFAULT_UPSTREAM = "ws://localhost:1337/connect";
 
 const AUTH_HEADER = "x-radish-auth";
 

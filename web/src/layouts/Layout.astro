@@ -1,0 +1,68 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href="/icon.png" />
+
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700&family=Inter:wght@400;500;600&display=swap"
+    />
+
+    <script is:inline>
+      // Match the previous site: dark by default, remembered per visitor.
+      try {
+        const stored = localStorage.getItem("theme");
+        const dark = stored ? stored === "dark" : true;
+        document.documentElement.classList.add(dark ? "dark" : "light");
+        document.documentElement.style.colorScheme = dark ? "dark" : "light";
+      } catch (e) {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+  </head>
+
+  <body
+    class="font-inter antialiased bg-indigo-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 tracking-tight"
+  >
+    <div class="relative flex min-h-screen flex-col overflow-hidden supports-[overflow:clip]:overflow-clip">
+      <!-- the vertical rules from the original layout -->
+      <div
+        class="pointer-events-none absolute inset-y-0 left-1/2 -z-10 w-[1102px] -translate-x-1/2"
+        aria-hidden="true"
+      >
+        <div
+          class="absolute inset-y-0 left-0 border-l border-indigo-300/40 dark:border-indigo-300/15"
+        >
+        </div>
+        <div
+          class="absolute inset-y-0 right-0 border-l border-indigo-300/40 dark:border-indigo-300/15"
+        >
+        </div>
+      </div>
+
+      <slot />
+    </div>
+  </body>
+</html>

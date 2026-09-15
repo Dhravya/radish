@@ -1,0 +1,7 @@
+#!/bin/sh
+# Alchemy 2.0.0-beta.77 fails under Bun (`Workerd.default.default`), and its
+# CLI launcher re-execs under bun whenever it sees the env vars `bun run`
+# sets on its children. Clearing them is what actually pins it to node;
+# resolving `node` on PATH is not enough.
+unset npm_execpath npm_config_user_agent
+exec "$(command -v node)" "$(dirname "$0")/../node_modules/alchemy/bin/cli.js" "$@"

@@ -6,3 +6,5 @@ dist/
 .env*
 !.env.example
 .radish-token
+web/dist/
+web/.astro/

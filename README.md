@@ -256,16 +256,22 @@ not a backup, and there is no export or point-in-time restore.
 
 ```sh
 bun install
-bun test                 # 624 tests
-node node_modules/alchemy/bin/cli.js dev
-bun run shim             # TCP :6379 → ws://localhost:8787/connect
+bun test                                            # 624 tests
+
+echo "RADISH_AUTH_TOKEN=$(openssl rand -hex 24)" > .env
+
+bun run dev                                         # worker on :1337
+RADISH_AUTH_TOKEN=$(grep -oE '[0-9a-f]{48}' .env) bun run shim
 redis-cli -p 6379 ping
 ```
+
+A token is required even locally — the worker fails closed rather than
+serving anyone who reaches it.
 
 ### Deployed
 
 ```sh
-node node_modules/alchemy/bin/cli.js deploy --yes
+bun run deploy
 
 RADISH_AUTH_TOKEN=$(cat .radish-token) \
 UPSTREAM="wss://<worker>.workers.dev/connect?db=cli" \
