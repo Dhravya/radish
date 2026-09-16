@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -75,6 +76,30 @@ func (w *Writer) WriteError(s string) error {
 	w.Write([]byte(s))
 	_, err := w.Write(newLine)
 	return err
+}
+
+// WriteResponse formats and writes a command response string according to the Redis serialization protocol.
+func (w *Writer) WriteResponse(response string) error {
+	if response == "(nil)" {
+		return w.WriteBulk(nil)
+	}
+	if strings.HasPrefix(response, "(integer) ") {
+		valStr := strings.TrimPrefix(response, "(integer) ")
+		val, err := strconv.ParseInt(valStr, 10, 64)
+		if err == nil {
+			return w.WriteInt(val)
+		}
+	}
+	if response == "OK" || response == "PONG" || response == "QUEUED" {
+		return w.WriteSimpleString(response)
+	}
+	if strings.HasPrefix(response, "ERR ") || strings.HasPrefix(response, "ERROR: ") {
+		return w.WriteError(response)
+	}
+	if response == "(empty set)" || response == "(empty hash)" || response == "(empty sorted set)" {
+		return w.WriteBulks([][]byte{}...)
+	}
+	return w.WriteBulkString(response)
 }
 
 func (w *Writer) WriteObjects(objs ...interface{}) error {

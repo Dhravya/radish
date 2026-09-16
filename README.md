@@ -46,7 +46,7 @@ Annddd all i ask in return is a little ⭐ so that i dont have to rely on twitte
 | Transactions              | ✅    | ✅     |
 | Lua scripting             | ✅    | ❌     |
 | LRU eviction              | ✅    | ❌     |
-| TTL                       | ✅    | ❌     |
+| TTL                       | ✅    | ✅     |
 | Clustering                | ✅    | ❌     |
 | Auth                      | ✅    | ❌     |
 
