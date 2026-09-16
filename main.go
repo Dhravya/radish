@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/dhravya/radish/redisproto"
@@ -31,8 +32,30 @@ type sortedSetMember struct {
 	score  float64
 }
 
+type DataItem struct {
+	Value     interface{}
+	ExpiresAt int64 // 0 means no expiration
+}
+
+func (d DataItem) String() string {
+	if s, ok := d.Value.(string); ok {
+		return s
+	}
+	if d.Value == nil {
+		return ""
+	}
+	return fmt.Sprintf("%v", d.Value)
+}
+
+func (d DataItem) IsExpired() bool {
+	if d.ExpiresAt == 0 {
+		return false
+	}
+	return time.Now().Unix() >= d.ExpiresAt
+}
+
 type KeyValueStore struct {
-	Strings                map[string]string
+	Strings                map[string]DataItem
 	Lists                  map[string][]string
 	Hashes                 map[string]map[string]string
 	Sets                   map[string]map[string]struct{}
@@ -40,8 +63,9 @@ type KeyValueStore struct {
 	Expirations            map[string]time.Time
 	mu                     sync.RWMutex
 	CurrentTx              *Transaction
-	totalCommandsProcessed int
+	totalCommandsProcessed int64
 	connectedClients       map[string]net.Conn
+	stopEviction           chan struct{}
 }
 
 var pubsub = NewPubSub()
@@ -50,6 +74,8 @@ var serverStartTime = time.Now()
 
 func init() {
 	gob.Register(map[string]string{})
+	gob.Register(map[string]DataItem{})
+	gob.Register(DataItem{})
 	gob.Register(map[string][]string{})
 	gob.Register(map[string]map[string]string{})
 	gob.Register(map[string]map[string]struct{}{})
@@ -59,8 +85,8 @@ func init() {
 }
 
 func NewKeyValueStore() *KeyValueStore {
-	return &KeyValueStore{
-		Strings:                make(map[string]string),
+	kv := &KeyValueStore{
+		Strings:                make(map[string]DataItem),
 		Lists:                  make(map[string][]string),
 		Hashes:                 make(map[string]map[string]string),
 		Sets:                   make(map[string]map[string]struct{}),
@@ -68,6 +94,87 @@ func NewKeyValueStore() *KeyValueStore {
 		Expirations:            make(map[string]time.Time),
 		totalCommandsProcessed: 0,
 		connectedClients:       make(map[string]net.Conn),
+		stopEviction:           make(chan struct{}),
+	}
+	kv.StartActiveExpiration(100 * time.Millisecond)
+	return kv
+}
+
+func (kv *KeyValueStore) StartActiveExpiration(interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				kv.evictExpiredKeys(100)
+			case <-kv.stopEviction:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+}
+
+func (kv *KeyValueStore) StopActiveExpiration() {
+	if kv.stopEviction != nil {
+		select {
+		case <-kv.stopEviction:
+		default:
+			close(kv.stopEviction)
+		}
+	}
+}
+
+func (kv *KeyValueStore) evictExpiredKeys(batchSize int) {
+	now := time.Now().Unix()
+	var expiredStrings []string
+
+	kv.mu.RLock()
+	count := 0
+	for key, item := range kv.Strings {
+		if item.ExpiresAt > 0 && now >= item.ExpiresAt {
+			expiredStrings = append(expiredStrings, key)
+		}
+		count++
+		if count >= batchSize {
+			break
+		}
+	}
+
+	var expiredOthers []string
+	nowTime := time.Now()
+	count = 0
+	for key, exp := range kv.Expirations {
+		if nowTime.After(exp) {
+			expiredOthers = append(expiredOthers, key)
+		}
+		count++
+		if count >= batchSize {
+			break
+		}
+	}
+	kv.mu.RUnlock()
+
+	if len(expiredStrings) > 0 || len(expiredOthers) > 0 {
+		kv.mu.Lock()
+		curNow := time.Now().Unix()
+		for _, key := range expiredStrings {
+			if item, exists := kv.Strings[key]; exists && item.ExpiresAt > 0 && curNow >= item.ExpiresAt {
+				delete(kv.Strings, key)
+				delete(kv.Expirations, key)
+			}
+		}
+		curTime := time.Now()
+		for _, key := range expiredOthers {
+			if exp, exists := kv.Expirations[key]; exists && curTime.After(exp) {
+				delete(kv.Expirations, key)
+				delete(kv.Lists, key)
+				delete(kv.Hashes, key)
+				delete(kv.Sets, key)
+				delete(kv.SortedSets, key)
+			}
+		}
+		kv.mu.Unlock()
 	}
 }
 
@@ -97,7 +204,7 @@ func (kv *KeyValueStore) CommandHandler(command *redisproto.Command) string {
 
 func (kv *KeyValueStore) executeCommand(parts []string) string {
 
-	kv.totalCommandsProcessed++
+	atomic.AddInt64(&kv.totalCommandsProcessed, 1)
 
 	fmt.Println("Command:", parts[0])
 	switch parts[0] {
@@ -110,7 +217,7 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		uptimeSeconds := int(time.Since(serverStartTime).Seconds())
 
 		// Assuming you have variables tracking these metrics
-		totalCommandsProcessed := kv.totalCommandsProcessed
+		totalCommandsProcessed := atomic.LoadInt64(&kv.totalCommandsProcessed)
 		memoryUsage := runtime.MemStats{}
 		runtime.ReadMemStats(&memoryUsage)
 		connectedClients := len(kv.connectedClients) // Example of how you might track connected clients
@@ -236,8 +343,12 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		if _, exists := kv.Hashes[parts[1]]; !exists {
 			kv.Hashes[parts[1]] = make(map[string]string)
 		}
+		isNew := 1
+		if _, exists := kv.Hashes[parts[1]][parts[2]]; exists {
+			isNew = 0
+		}
 		kv.Hashes[parts[1]][parts[2]] = parts[3]
-		return "OK"
+		return fmt.Sprintf("(integer) %d", isNew)
 	case "HGET":
 		if len(parts) != 3 {
 			return "ERROR: HGET requires 2 arguments"
@@ -324,17 +435,23 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 			return "ERROR: SET requires 2 arguments"
 		}
 		key, value := parts[1], parts[2]
-		kv.Strings[key] = value
+		kv.Strings[key] = DataItem{Value: value, ExpiresAt: 0}
+		delete(kv.Expirations, key)
 		return "OK"
 	case "GET":
 		if len(parts) != 2 {
 			return "ERROR: GET requires 1 argument"
 		}
-		kv.mu.RLock()
-		defer kv.mu.RUnlock()
+		kv.mu.Lock()
+		defer kv.mu.Unlock()
 		key := parts[1]
-		if value, exists := kv.Strings[key]; exists {
-			return value
+		if item, exists := kv.Strings[key]; exists {
+			if item.IsExpired() {
+				delete(kv.Strings, key)
+				delete(kv.Expirations, key)
+				return "(nil)"
+			}
+			return item.String()
 		}
 		return "(nil)"
 	case "APPEND":
@@ -344,10 +461,19 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		kv.mu.Lock()
 		defer kv.mu.Unlock()
 		key, valueToAppend := parts[1], parts[2]
-		if value, exists := kv.Strings[key]; exists {
-			kv.Strings[key] = value + valueToAppend
+		if item, exists := kv.Strings[key]; exists {
+			if item.IsExpired() {
+				delete(kv.Strings, key)
+				delete(kv.Expirations, key)
+				kv.Strings[key] = DataItem{Value: valueToAppend, ExpiresAt: 0}
+			} else {
+				kv.Strings[key] = DataItem{
+					Value:     item.String() + valueToAppend,
+					ExpiresAt: item.ExpiresAt,
+				}
+			}
 		} else {
-			kv.Strings[key] = valueToAppend
+			kv.Strings[key] = DataItem{Value: valueToAppend, ExpiresAt: 0}
 		}
 		return "OK"
 	case "DEL":
@@ -358,10 +484,13 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		defer kv.mu.Unlock()
 		count := 0
 		for _, key := range parts[1:] {
-			if _, exists := kv.Strings[key]; exists {
+			if item, exists := kv.Strings[key]; exists {
 				delete(kv.Strings, key)
-				count++
+				if !item.IsExpired() {
+					count++
+				}
 			}
+			delete(kv.Expirations, key)
 			// Also, attempt to delete from other data structures
 			if _, exists := kv.Lists[key]; exists {
 				delete(kv.Lists, key)
@@ -371,19 +500,50 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 				delete(kv.Hashes, key)
 				count++
 			}
+			if _, exists := kv.Sets[key]; exists {
+				delete(kv.Sets, key)
+				count++
+			}
+			if _, exists := kv.SortedSets[key]; exists {
+				delete(kv.SortedSets, key)
+				count++
+			}
 		}
 		return fmt.Sprintf("(integer) %d", count)
 	case "EXISTS":
 		if len(parts) != 2 {
 			return "ERROR: EXISTS requires 1 argument"
 		}
-		kv.mu.RLock()
-		defer kv.mu.RUnlock()
+		kv.mu.Lock()
+		defer kv.mu.Unlock()
 		key := parts[1]
-		_, existsInStrings := kv.Strings[key]
+		existsInStrings := false
+		if item, exists := kv.Strings[key]; exists {
+			if item.IsExpired() {
+				delete(kv.Strings, key)
+				delete(kv.Expirations, key)
+			} else {
+				existsInStrings = true
+			}
+		}
 		_, existsInLists := kv.Lists[key]
 		_, existsInHashes := kv.Hashes[key]
-		exists := existsInStrings || existsInLists || existsInHashes
+		_, existsInSets := kv.Sets[key]
+		_, existsInSortedSets := kv.SortedSets[key]
+		if exp, hasExp := kv.Expirations[key]; hasExp {
+			if time.Now().After(exp) {
+				delete(kv.Expirations, key)
+				delete(kv.Lists, key)
+				delete(kv.Hashes, key)
+				delete(kv.Sets, key)
+				delete(kv.SortedSets, key)
+				existsInLists = false
+				existsInHashes = false
+				existsInSets = false
+				existsInSortedSets = false
+			}
+		}
+		exists := existsInStrings || existsInLists || existsInHashes || existsInSets || existsInSortedSets
 		if exists {
 			return "(integer) 1"
 		}
@@ -392,49 +552,124 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		if len(parts) != 2 {
 			return "ERROR: KEYS requires 1 argument"
 		}
-		kv.mu.RLock()
-		defer kv.mu.RUnlock()
+		kv.mu.Lock()
+		defer kv.mu.Unlock()
 		pattern := parts[1]
 		matchedKeys := ""
-		for key := range kv.Strings {
+		for key, item := range kv.Strings {
+			if item.IsExpired() {
+				delete(kv.Strings, key)
+				delete(kv.Expirations, key)
+				continue
+			}
 			if strings.Contains(key, pattern) {
 				matchedKeys += key + " "
 			}
 		}
-		// Optionally, search in other data structures
+		for key, exp := range kv.Expirations {
+			if time.Now().After(exp) {
+				delete(kv.Expirations, key)
+				delete(kv.Lists, key)
+				delete(kv.Hashes, key)
+				delete(kv.Sets, key)
+				delete(kv.SortedSets, key)
+			}
+		}
 		return strings.TrimSpace(matchedKeys)
 	case "EXPIRE":
 		if len(parts) != 3 {
 			return "ERROR: EXPIRE requires 2 arguments"
 		}
-		kv.mu.RLock()
-		defer kv.mu.RUnlock()
+		kv.mu.Lock()
+		defer kv.mu.Unlock()
 		key := parts[1]
-		seconds, err := strconv.Atoi(parts[2])
+		seconds, err := strconv.ParseInt(parts[2], 10, 64)
 		if err != nil {
 			return "ERROR: Invalid TTL value"
 		}
-		expirationTime := time.Now().Add(time.Duration(seconds) * time.Second)
-		kv.Expirations[key] = expirationTime
-		return "OK"
+		if item, exists := kv.Strings[key]; exists {
+			if item.IsExpired() {
+				delete(kv.Strings, key)
+				delete(kv.Expirations, key)
+				return "(integer) 0"
+			}
+			if seconds <= 0 {
+				delete(kv.Strings, key)
+				delete(kv.Expirations, key)
+				return "(integer) 1"
+			}
+			item.ExpiresAt = time.Now().Unix() + seconds
+			kv.Strings[key] = item
+			return "(integer) 1"
+		}
+		_, existsInLists := kv.Lists[key]
+		_, existsInHashes := kv.Hashes[key]
+		_, existsInSets := kv.Sets[key]
+		_, existsInSortedSets := kv.SortedSets[key]
+		if existsInLists || existsInHashes || existsInSets || existsInSortedSets {
+			if exp, hasExp := kv.Expirations[key]; hasExp && time.Now().After(exp) {
+				delete(kv.Expirations, key)
+				delete(kv.Lists, key)
+				delete(kv.Hashes, key)
+				delete(kv.Sets, key)
+				delete(kv.SortedSets, key)
+				return "(integer) 0"
+			}
+			if seconds <= 0 {
+				delete(kv.Expirations, key)
+				delete(kv.Lists, key)
+				delete(kv.Hashes, key)
+				delete(kv.Sets, key)
+				delete(kv.SortedSets, key)
+				return "(integer) 1"
+			}
+			kv.Expirations[key] = time.Now().Add(time.Duration(seconds) * time.Second)
+			return "(integer) 1"
+		}
+		return "(integer) 0"
 	case "TTL":
 		if len(parts) != 2 {
 			return "ERROR: TTL requires 1 argument"
 		}
-		kv.mu.RLock()
-		defer kv.mu.RUnlock()
+		kv.mu.Lock()
+		defer kv.mu.Unlock()
 		key := parts[1]
-		if expiration, exists := kv.Expirations[key]; exists {
-			if time.Now().Before(expiration) {
-				ttl := time.Until(expiration).Seconds()
-				return fmt.Sprintf("(integer) %d", int(ttl))
+		if item, exists := kv.Strings[key]; exists {
+			if item.ExpiresAt == 0 {
+				return "(integer) -1"
 			}
-			// Key expired, clean up
-			delete(kv.Expirations, key)
-			delete(kv.Strings, key) // Also consider cleaning up from other data structures
-			return "(integer) -2"   // Indicate the key does not exist (expired)
+			now := time.Now().Unix()
+			if now >= item.ExpiresAt {
+				delete(kv.Strings, key)
+				delete(kv.Expirations, key)
+				return "(integer) -2"
+			}
+			ttl := item.ExpiresAt - now
+			return fmt.Sprintf("(integer) %d", ttl)
 		}
-		return "(integer) -1"
+		_, existsInLists := kv.Lists[key]
+		_, existsInHashes := kv.Hashes[key]
+		_, existsInSets := kv.Sets[key]
+		_, existsInSortedSets := kv.SortedSets[key]
+		if existsInLists || existsInHashes || existsInSets || existsInSortedSets {
+			if exp, hasExp := kv.Expirations[key]; hasExp {
+				if time.Now().After(exp) {
+					delete(kv.Expirations, key)
+					delete(kv.Lists, key)
+					delete(kv.Hashes, key)
+					delete(kv.Sets, key)
+					delete(kv.SortedSets, key)
+					return "(integer) -2"
+				}
+				ttl := int64(time.Until(exp).Seconds())
+				if ttl < 0 {
+					return "(integer) -2"
+				}
+				return fmt.Sprintf("(integer) %d", ttl)
+			}
+			return "(integer) -1"
+		}
+		return "(integer) -2"
 	case "SADD":
 		if len(parts) < 3 {
 			return "ERR SADD requires at least 2 arguments"
@@ -670,16 +905,18 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		key := parts[1]
 		kv.mu.Lock()
 		defer kv.mu.Unlock()
-		if value, exists := kv.Strings[key]; exists {
-			intValue, err := strconv.Atoi(value)
+		if item, exists := kv.Strings[key]; exists && !item.IsExpired() {
+			intValue, err := strconv.Atoi(item.String())
 			if err != nil {
 				return "ERR value is not an integer"
 			}
 			intValue++
-			kv.Strings[key] = strconv.Itoa(intValue)
+			item.Value = strconv.Itoa(intValue)
+			kv.Strings[key] = item
 			return fmt.Sprintf("(integer) %d", intValue)
 		} else {
-			kv.Strings[key] = "1"
+			delete(kv.Expirations, key)
+			kv.Strings[key] = DataItem{Value: "1", ExpiresAt: 0}
 			return "(integer) 1"
 		}
 	case "INCRBY":
@@ -694,16 +931,18 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		}
 		kv.mu.Lock()
 		defer kv.mu.Unlock()
-		if value, exists := kv.Strings[key]; exists {
-			intValue, err := strconv.Atoi(value)
+		if item, exists := kv.Strings[key]; exists && !item.IsExpired() {
+			intValue, err := strconv.Atoi(item.String())
 			if err != nil {
 				return "ERR value is not an integer"
 			}
 			intValue += increment
-			kv.Strings[key] = strconv.Itoa(intValue)
+			item.Value = strconv.Itoa(intValue)
+			kv.Strings[key] = item
 			return fmt.Sprintf("(integer) %d", intValue)
 		} else {
-			kv.Strings[key] = strconv.Itoa(increment)
+			delete(kv.Expirations, key)
+			kv.Strings[key] = DataItem{Value: strconv.Itoa(increment), ExpiresAt: 0}
 			return fmt.Sprintf("(integer) %d", increment)
 		}
 	case "DECRBY":
@@ -718,16 +957,18 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		}
 		kv.mu.Lock()
 		defer kv.mu.Unlock()
-		if value, exists := kv.Strings[key]; exists {
-			intValue, err := strconv.Atoi(value)
+		if item, exists := kv.Strings[key]; exists && !item.IsExpired() {
+			intValue, err := strconv.Atoi(item.String())
 			if err != nil {
 				return "ERR value is not an integer"
 			}
 			intValue -= decrement
-			kv.Strings[key] = strconv.Itoa(intValue)
+			item.Value = strconv.Itoa(intValue)
+			kv.Strings[key] = item
 			return fmt.Sprintf("(integer) %d", intValue)
 		} else {
-			kv.Strings[key] = strconv.Itoa(-decrement)
+			delete(kv.Expirations, key)
+			kv.Strings[key] = DataItem{Value: strconv.Itoa(-decrement), ExpiresAt: 0}
 			return fmt.Sprintf("(integer) %d", -decrement)
 		}
 	case "DECR":
@@ -737,16 +978,18 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		key := parts[1]
 		kv.mu.Lock()
 		defer kv.mu.Unlock()
-		if value, exists := kv.Strings[key]; exists {
-			intValue, err := strconv.Atoi(value)
+		if item, exists := kv.Strings[key]; exists && !item.IsExpired() {
+			intValue, err := strconv.Atoi(item.String())
 			if err != nil {
 				return "ERR value is not an integer"
 			}
 			intValue--
-			kv.Strings[key] = strconv.Itoa(intValue)
+			item.Value = strconv.Itoa(intValue)
+			kv.Strings[key] = item
 			return fmt.Sprintf("(integer) %d", intValue)
 		} else {
-			kv.Strings[key] = "-1"
+			delete(kv.Expirations, key)
+			kv.Strings[key] = DataItem{Value: "-1", ExpiresAt: 0}
 			return "(integer) -1"
 		}
 	case "MSET":
@@ -756,7 +999,8 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		kv.mu.Lock()
 		defer kv.mu.Unlock()
 		for i := 1; i < len(parts); i += 2 {
-			kv.Strings[parts[i]] = parts[i+1]
+			kv.Strings[parts[i]] = DataItem{Value: parts[i+1], ExpiresAt: 0}
+			delete(kv.Expirations, parts[i])
 		}
 		return "OK"
 	case "MGET":
@@ -767,8 +1011,14 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 		defer kv.mu.Unlock()
 		result := make([]string, 0)
 		for _, key := range parts[1:] {
-			if value, exists := kv.Strings[key]; exists {
-				result = append(result, value)
+			if item, exists := kv.Strings[key]; exists {
+				if item.IsExpired() {
+					delete(kv.Strings, key)
+					delete(kv.Expirations, key)
+					result = append(result, "(nil)")
+				} else {
+					result = append(result, item.String())
+				}
 			} else {
 				result = append(result, "(nil)")
 			}
@@ -777,7 +1027,7 @@ func (kv *KeyValueStore) executeCommand(parts []string) string {
 	case "FLUSHALL":
 		kv.mu.Lock()
 		defer kv.mu.Unlock()
-		kv.Strings = make(map[string]string)
+		kv.Strings = make(map[string]DataItem)
 		kv.Lists = make(map[string][]string)
 		kv.Hashes = make(map[string]map[string]string)
 		kv.Sets = make(map[string]map[string]struct{})
@@ -817,7 +1067,7 @@ func handleConnection(conn net.Conn, kv *KeyValueStore) {
 		} else {
 			response := kv.CommandHandler(command)
 			if response != "" {
-				ew := writer.WriteBulkString(response)
+				ew := writer.WriteResponse(response)
 				if ew != nil {
 					fmt.Println("Error writing response:", ew)
 					break
