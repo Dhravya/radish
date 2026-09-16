@@ -1,3 +1,4 @@
+# Upstream (radish)
 node_modules/
 .alchemy/
 .wrangler/
@@ -8,3 +9,18 @@ dist/
 .radish-token
 web/dist/
 web/.astro/
+
+# AgentOptimize (Python)
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+build/
+.eggs/
+*.egg
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.venv/
+venv/
+config.yaml
