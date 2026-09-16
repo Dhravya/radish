@@ -1,0 +1,86 @@
+# AgentOptimize Configuration
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+# OTLP ingestion settings
+ingestion:
+  grpc_port: 4317
+  http_port: 4318
+  max_batch_size: 512
+  flush_interval_seconds: 5
+
+# Trace warehouse (in-memory for V0, pluggable backend later)
+warehouse:
+  backend: "memory"
+  retention_hours: 168  # 7 days
+
+# Cost catalog: default model pricing (per 1M tokens)
+cost_catalog:
+  providers:
+    openai:
+      models:
+        gpt-4o:
+          input_cost_per_1m: 2.50
+          output_cost_per_1m: 10.00
+        gpt-4o-mini:
+          input_cost_per_1m: 0.15
+          output_cost_per_1m: 0.60
+        gpt-4-turbo:
+          input_cost_per_1m: 10.00
+          output_cost_per_1m: 30.00
+        o1:
+          input_cost_per_1m: 15.00
+          output_cost_per_1m: 60.00
+        o1-mini:
+          input_cost_per_1m: 1.10
+          output_cost_per_1m: 4.40
+    anthropic:
+      models:
+        claude-sonnet-4-20250514:
+          input_cost_per_1m: 3.00
+          output_cost_per_1m: 15.00
+        claude-haiku-3-20240307:
+          input_cost_per_1m: 0.25
+          output_cost_per_1m: 1.25
+        claude-opus-4-20250514:
+          input_cost_per_1m: 15.00
+          output_cost_per_1m: 75.00
+    google:
+      models:
+        gemini-2.0-flash:
+          input_cost_per_1m: 0.10
+          output_cost_per_1m: 0.40
+        gemini-2.5-pro:
+          input_cost_per_1m: 1.25
+          output_cost_per_1m: 10.00
+
+# Waste detector thresholds
+detectors:
+  model_overprovisioning:
+    enabled: true
+    quality_tolerance: 0.02       # Accept up to 2% quality drop
+    min_sample_size: 50
+  context_duplication:
+    enabled: true
+    novelty_threshold: 0.30       # Flag if <30% of context is novel
+  retry_waste:
+    enabled: true
+    max_retries_before_flag: 2
+  unnecessary_verification:
+    enabled: true
+    quality_delta_threshold: 0.005  # Flag if verifier changes <0.5% of outcomes
+  redundant_tools:
+    enabled: true
+    similarity_threshold: 0.85
+  bad_routing:
+    enabled: true
+  serialization_waste:
+    enabled: true
+
+# Privacy controls
+privacy:
+  capture_prompts: false
+  capture_completions: false
+  redact_pii: true
+  hash_content: true

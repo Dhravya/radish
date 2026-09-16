@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agent-optimize"
+version = "0.1.0"
+description = "AI-agent FinOps: waste attribution, counterfactual optimization, and quality preservation for production AI agents."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+authors = [{ name = "AgentOptimize Team" }]
+
+dependencies = [
+    "fastapi==0.115.6",
+    "uvicorn[standard]==0.34.0",
+    "pydantic==2.10.4",
+    "opentelemetry-api==1.29.0",
+    "opentelemetry-sdk==1.29.0",
+    "opentelemetry-proto==1.29.0",
+    "opentelemetry-exporter-otlp-proto-grpc==1.29.0",
+    "grpcio==1.69.0",
+    "protobuf==5.29.3",
+    "httpx==0.28.1",
+    "structlog==24.4.0",
+    "click==8.1.7",
+    "rich==13.9.4",
+    "pyyaml==6.0.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff==0.8.6",
+    "mypy==1.14.1",
+    "pytest==8.3.4",
+    "pytest-asyncio==0.25.0",
+    "pytest-httpx==0.35.0",
+]
+
+[project.scripts]
+agent-optimize = "agent_optimize.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agent_optimize"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
