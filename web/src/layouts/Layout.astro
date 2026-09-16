@@ -1,6 +1,7 @@
 ---
 import "../styles/global.css";
 
+
 interface Props {
   title: string;
   description: string;
@@ -27,11 +28,11 @@ const { title, description } = Astro.props;
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700&family=Inter:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter+Tight:wght@600;700&family=Inter:wght@400;500;600&display=swap"
     />
 
     <script is:inline>
-      // Match the previous site: dark by default, remembered per visitor.
+      // dark by default, remembered per visitor, same as the previous site
       try {
         const stored = localStorage.getItem("theme");
         const dark = stored ? stored === "dark" : true;
@@ -46,23 +47,26 @@ const { title, description } = Astro.props;
   <body
     class="font-inter antialiased bg-indigo-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 tracking-tight"
   >
-    <div class="relative flex min-h-screen flex-col overflow-hidden supports-[overflow:clip]:overflow-clip">
-      <!-- the vertical rules from the original layout -->
-      <div
-        class="pointer-events-none absolute inset-y-0 left-1/2 -z-10 w-[1102px] -translate-x-1/2"
-        aria-hidden="true"
-      >
-        <div
-          class="absolute inset-y-0 left-0 border-l border-indigo-300/40 dark:border-indigo-300/15"
-        >
-        </div>
-        <div
-          class="absolute inset-y-0 right-0 border-l border-indigo-300/40 dark:border-indigo-300/15"
-        >
-        </div>
-      </div>
-
+    <div class="flex min-h-screen flex-col">
       <slot />
     </div>
+    <script>
+      if (import.meta.env.DEV) {
+        (async () => {
+          try {
+            const React = await import("react");
+            const { createRoot } = await import("react-dom/client");
+            const { Agentation } = await import("agentation");
+            const host = document.createElement("div");
+            document.body.appendChild(host);
+            createRoot(host).render(
+              React.createElement(Agentation, { endpoint: "http://localhost:4747" }),
+            );
+          } catch (e) {
+            console.error("agentation failed to mount:", e);
+          }
+        })();
+      }
+    </script>
   </body>
 </html>

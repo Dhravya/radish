@@ -3,88 +3,93 @@ import Layout from "../layouts/Layout.astro";
 
 const repo = "https://github.com/Dhravya/radish";
 
-const heading =
-  "font-inter-tight text-5xl md:text-6xl font-bold text-gray-800 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-b dark:from-indigo-200 dark:to-gray-200 pb-4";
-
-const sectionHeading =
-  "font-inter-tight text-2xl font-bold text-gray-800 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-b dark:from-indigo-200 dark:to-gray-200";
-
-const quickstart = [
-  {
-    step: "Run it locally",
-    code: `git clone ${repo}
-cd radish && bun install
-
-# the worker refuses to serve without a token
-echo "RADISH_AUTH_TOKEN=$(openssl rand -hex 24)" > .env
-
-bun run dev                                    # worker on :1337
-RADISH_AUTH_TOKEN=$(grep -oE '[0-9a-f]{48}' .env) bun run shim`,
-  },
-  {
-    step: "Deploy it to your own Cloudflare account",
-    code: `bun run auth        # one-time, opens a browser
-bun run deploy`,
-  },
-  {
-    step: "Point any Redis client at it",
-    code: `redis-cli -p 6379 set hello world
-redis-cli -p 6379 zadd board 9.5 alice`,
-  },
+const stats = [
+  ["commands", "136", "of 250"],
+  ["tests", "624", "0 failing"],
+  ["differential", "10/10", "seeds byte-identical"],
+  ["ack'd writes lost", "0", "on crash"],
 ];
+
+const chars = [
+  ["Durability", [
+    ["writers per instance", "1", ""],
+    ["acknowledged writes lost on crash", "0", "up"],
+    ["rollback on storage failure", "yes", "up"],
+    ["point-in-time restore", "none", "down"],
+  ]],
+  ["Correctness", [
+    ["commands implemented", "136 / 250", ""],
+    ["seeds byte-identical vs redis 7.4.11", "10 / 10", "up"],
+    ["commands diffed against real redis", "~20,000", ""],
+    ["assertions", "159,689", ""],
+  ]],
+  ["Throughput", [
+    ["GET", "333,333/s", "down"],
+    ["SET", "117,647/s", "down"],
+    ["redis GET, same machine", "1,428,571/s", ""],
+    ["SQL statements per GET", "1", "up"],
+  ]],
+  ["Capacity", [
+    ["SQLite per named instance", "10 GB", ""],
+    ["beyond that", "R2 cold tier", "up"],
+    ["instances", "unlimited", "up"],
+    ["max value size", "1 MiB", ""],
+  ]],
+] as const;
+
+const missing = [
+  ["Blocking", "BLPOP BRPOP BLMOVE BLMPOP"],
+  ["Streams", "XADD XRANGE XREAD, consumer groups"],
+  ["Scripting", "EVAL EVALSHA FUNCTION"],
+  ["Zset set-ops", "ZUNION ZINTER ZDIFF and the *STORE forms"],
+  ["Introspection", "OBJECT DUMP RESTORE"],
+  ["Also absent", "cluster, replication, ACL"],
+] as const;
 ---
 
 <Layout
-  title="Radish — Redis, but on Durable Objects"
-  description="A Redis-compatible key-value store that runs inside a Cloudflare Durable Object. SQLite as the store, R2 underneath, no servers to run."
+  title="Radish, Redis, but on Durable Objects"
+  description="A Redis-compatible key-value store that runs inside a Cloudflare Durable Object. SQLite as the store, R2 as the cold tier, no servers to run."
 >
-  <main class="grow">
-    <section>
-      <div class="mx-auto max-w-6xl px-4 sm:px-6">
-        <div class="pt-28 pb-12 md:pt-36 md:pb-16">
-          <!-- hero -->
-          <div class="mx-auto max-w-3xl text-center">
-            <img
-              src="/icon.png"
-              alt=""
-              width="104"
-              height="104"
-              class="mx-auto mb-8 rounded-2xl"
-            />
+  <main class="mx-auto w-full max-w-5xl px-5 sm:px-8">
+    <!-- masthead -->
+    <header class="hair flex items-center gap-3 border-b py-3.5">
+      <img src="/icon.png" alt="" width="22" height="22" class="rounded" />
+      <span class="font-mono text-[13px] font-semibold tracking-[0.18em] uppercase">radish</span>
+      <span class="ml-auto flex gap-5 font-mono text-[12px] text-gray-600 dark:text-gray-400">
+        <a href={`${repo}/blob/main/README.md`} class="hover:text-indigo-600 dark:hover:text-indigo-300">docs</a>
+        <a href={repo} class="hover:text-indigo-600 dark:hover:text-indigo-300">source</a>
+      </span>
+    </header>
 
-            <div
-              class="mb-4 text-xl font-bold text-white font-inter dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-b dark:from-indigo-200 dark:to-gray-200"
-            >
-              Radish
+    <!-- hero -->
+    <section class="hair grid gap-8 border-b py-12 md:grid-cols-[1.05fr_1fr] md:py-16">
+      <div>
+        <h1 class="font-inter-tight text-[2.6rem] leading-[1.03] font-bold tracking-tight sm:text-[3.4rem]">
+          Redis, but on<br />Durable&nbsp;Objects.
+        </h1>
+        <p class="mt-5 max-w-lg text-[15px] text-gray-700 dark:text-gray-400">
+          A Redis-compatible server that runs inside a Cloudflare Durable Object. SQLite is the store, R2 is the cold tier. Your client
+          does not know the difference.
+        </p>
+
+        <div class="mt-7 grid max-w-md grid-cols-2 gap-x-8 gap-y-4">
+          {stats.map(([k, v, note]) => (
+            <div class="hair border-t pt-2.5">
+              <div class="text-[12px] text-gray-500 dark:text-gray-500">{k}</div>
+              <div class="mt-0.5 font-mono text-[22px] font-semibold tabular-nums">{v}</div>
+              <div class="font-mono text-[11px] text-gray-500 dark:text-gray-500">{note}</div>
             </div>
+          ))}
+        </div>
+      </div>
 
-            <h1 class={heading}>Redis, but on Durable Objects.</h1>
-
-            <p class="mx-auto max-w-2xl text-lg text-gray-700 dark:text-gray-400">
-              A Redis-compatible key-value store that runs inside a Cloudflare
-              Durable Object. SQLite is the store, R2 is the cold tier, and
-              there are no servers to run — durability and failover are
-              properties of the platform, not things you operate.
-            </p>
-
-            <div
-              class="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-mono text-sm text-gray-600 dark:text-gray-400"
-            >
-              <span><span class="font-semibold text-gray-800 dark:text-gray-200">136</span> commands</span>
-              <span><span class="font-semibold text-gray-800 dark:text-gray-200">624</span> tests</span>
-              <span><span class="font-semibold text-gray-800 dark:text-gray-200">0</span> diffs vs real redis</span>
-            </div>
-          </div>
-
-          <!-- diagram -->
-          <div class="mx-auto mt-14 max-w-4xl">
-            <div
-              class="overflow-x-auto rounded-xl border border-indigo-300/50 bg-white/70 p-5 shadow-sm dark:border-gray-700/60 dark:bg-gray-800/40"
-            >
-              <pre
-                class="w-max font-mono text-[10.5px] leading-relaxed text-gray-600 sm:text-xs dark:text-gray-400">{`  ┌───────────┐                        ┌──────────┐
-  │ redis-cli │──TCP──▶ shim ──wss──▶  │  Worker  │  authenticates, then exits
-  └───────────┘         ▲              └────┬─────┘
+      <!-- architecture -->
+      <div class="hair border-t pt-3 md:border-t-0 md:border-l md:pt-0 md:pl-8">
+        <div class="mb-2 text-[13px] font-medium text-gray-500 dark:text-gray-500">Architecture</div>
+        <pre class="term text-[9.5px] text-gray-700 sm:text-[10.5px] dark:text-gray-400">{`  ┌───────────┐                        ┌──────────┐
+  │ redis-cli │──TCP──▶ shim ──wss──▶  │  Worker  │  authenticates,
+  └───────────┘         ▲              └────┬─────┘  then exits
                         │                   │ ?db=sessions
       translates only;  │                   ▼
       deleted once      │          ┌──────────────────┐
@@ -97,136 +102,160 @@ redis-cli -p 6379 zadd board 9.5 alice`,
                                    ┌─────────┴────────┐
                                    │   R2  cold tier  │  unbounded
                                    └──────────────────┘`}</pre>
-            </div>
-            <p class="mt-3 text-center text-sm text-gray-600 dark:text-gray-500">
-              One name is one database. <code class="font-mono">?db=sessions</code> and
-              <code class="font-mono">?db=tenant-4821</code> are separate Durable Objects with separate
-              SQLite databases — per-tenant isolation without per-tenant infrastructure.
-            </p>
+        <p class="mt-3 font-mono text-[11px] leading-relaxed text-gray-500 dark:text-gray-500">
+          the socket terminates inside the durable object, via <code>ctx.acceptWebSocket()</code>.
+          after the handshake the worker is not in the data path at all.
+        </p>
+      </div>
+    </section>
+
+    <!-- install -->
+    <section class="hair grid gap-10 border-b py-12 md:grid-cols-[0.85fr_1.15fr]">
+      <div>
+        <h2 class="font-inter-tight text-2xl font-bold">Deploy it to your Cloudflare account</h2>
+        <p class="mt-3 text-[14px] text-gray-700 dark:text-gray-400">
+          One Worker, one Durable Object namespace, one R2 bucket. It
+          <strong class="font-semibold text-gray-900 dark:text-gray-200">fails closed</strong>: with
+          no token it returns 503 rather than serving whoever finds the URL.
+        </p>
+        <p class="mt-4 text-[13px] text-gray-600 dark:text-gray-500">
+          ioredis, redis-py, go-redis and redis-cli all work unchanged. The shim only exists
+          because a Durable Object cannot accept raw TCP yet; it disappears when
+          <code class="font-mono">connect()</code> ships.
+        </p>
+      </div>
+
+      <pre class="sh"><span class="pr">$</span> <span class="fn">git clone</span> <span class="ar">github.com/Dhravya/radish</span>
+<span class="pr">$</span> <span class="fn">cd</span> radish <span class="pr">&&</span> <span class="fn">bun install</span>
+<span class="pr">$</span> <span class="fn">echo</span> <span class="st">"RADISH_AUTH_TOKEN=$(openssl rand -hex 24)"</span> &gt; <span class="ar">.env</span>
+
+<span class="pr">$</span> <span class="fn">bun run dev</span>          <span class="cm"># local worker, :1337</span>
+<span class="pr">$</span> <span class="fn">bun run deploy</span>       <span class="cm"># your cloudflare account</span>
+
+<span class="pr">$</span> <span class="fn">bun run shim</span>         <span class="cm"># TCP :6379 to the worker</span>
+<span class="pr">$</span> <span class="fn">redis-cli</span> -p <span class="ar">6379</span> set hello world
+<span class="st">OK</span></pre>
+    </section>
+
+    <!-- characteristics -->
+    <section class="hair border-b py-12">
+      <h2 class="font-inter-tight mb-6 text-2xl font-bold">Key characteristics</h2>
+      <div class="grid gap-x-10 gap-y-7 sm:grid-cols-2">
+        {chars.map(([group, rows]) => (
+          <div>
+            <div class="hair border-b pb-1.5 text-[13px] font-medium text-gray-500 dark:text-gray-500">{group}</div>
+            <table class="w-full">
+              <tbody>
+                {rows.map(([k, v, tone]) => (
+                  <tr class="hair border-b last:border-b-0">
+                    <td class="py-1.5 pr-3 text-[13px] text-gray-700 dark:text-gray-400">{k}</td>
+                    <td
+                      class={`py-1.5 text-right font-mono text-[13px] font-semibold tabular-nums whitespace-nowrap ${
+                        tone === "up"
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : tone === "down"
+                            ? "text-rose-600 dark:text-rose-400"
+                            : ""
+                      }`}
+                    >{v}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
+        ))}
       </div>
+      <p class="mt-6 max-w-2xl text-[13px] text-gray-600 dark:text-gray-500">
+        One order of magnitude of throughput, traded for durability and zero operations. If
+        that trade is wrong for your workload, nothing here fixes it, so
+        <strong class="font-semibold text-gray-900 dark:text-gray-300">use Redis</strong>.
+      </p>
     </section>
 
-    <!-- quickstart -->
-    <section>
-      <div class="mx-auto max-w-3xl px-4 pb-12 sm:px-6">
-        <h2 class={sectionHeading}>Get started ⚡</h2>
-        <p class="mt-2 mb-8 text-gray-700 dark:text-gray-400">
-          Radish is not a hosted service. You deploy it to your own Cloudflare
-          account and it is yours.
+    <!-- substrate -->
+    <section class="hair grid gap-10 border-b py-12 md:grid-cols-[0.85fr_1.15fr]">
+      <div>
+        <h2 class="font-inter-tight text-2xl font-bold">Most of Redis deletes itself</h2>
+        <p class="mt-3 text-[14px] text-gray-700 dark:text-gray-400">
+          Redis built its machinery to survive a world without durable single-writer storage.
+          A Durable Object already has one, so the machinery has nothing left to do.
         </p>
-
-        <ol class="space-y-6">
-          {
-            quickstart.map((item, i) => (
-              <li>
-                <div class="mb-2 flex items-baseline gap-3">
-                  <span class="font-mono text-sm font-semibold text-indigo-500 dark:text-indigo-400">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <span class="font-semibold text-gray-800 dark:text-gray-200">{item.step}</span>
-                </div>
-                <pre class="overflow-x-auto rounded-xl border border-indigo-300/50 bg-white/70 p-4 font-mono text-xs leading-relaxed text-gray-700 shadow-sm sm:text-[13px] dark:border-gray-700/60 dark:bg-gray-800/40 dark:text-gray-300">{item.code}</pre>
-              </li>
-            ))
-          }
-        </ol>
-
-        <p class="mt-6 text-sm text-gray-600 dark:text-gray-500">
-          Any Redis client works unchanged — <code class="font-mono">ioredis</code>,
-          <code class="font-mono">redis-py</code>, <code class="font-mono">go-redis</code>. The shim
-          only exists because a Durable Object cannot accept raw TCP yet; it has no protocol
-          knowledge and disappears once Cloudflare's <code class="font-mono">connect()</code> handler
-          ships. The worker <strong class="font-semibold text-gray-800 dark:text-gray-300">fails closed</strong>:
-          with no <code class="font-mono">RADISH_AUTH_TOKEN</code> it refuses to serve.
+        <p class="mt-4 text-[13px] text-gray-600 dark:text-gray-500">
+          One name is one database. <code class="font-mono">?db=sessions</code> and
+          <code class="font-mono">?db=tenant-4821</code> are separate objects with separate SQLite
+          databases, migrating between machines independently.
         </p>
       </div>
+
+      <pre class="sh"><span class="cm">redis mechanism</span>            <span class="cm">radish</span>
+<span class="fn">single-threaded loop</span>  <span class="pr">→</span>  the input gate
+<span class="fn">AOF + fsync policy</span>   <span class="pr">→</span>  the output gate
+<span class="fn">RDB + fork()</span>         <span class="pr">→</span>  <span class="st">SQLite is the snapshot</span>
+<span class="fn">cluster + resharding</span> <span class="pr">→</span>  one name = one instance
+<span class="fn">replica failover</span>     <span class="pr">→</span>  the platform migrates it
+<span class="fn">maxmemory eviction</span>   <span class="pr">→</span>  the R2 cold tier</pre>
     </section>
 
-    <!-- the trade -->
-    <section>
-      <div class="mx-auto max-w-3xl px-4 pb-20 sm:px-6">
-        <h2 class={sectionHeading}>The honest trade</h2>
-        <p class="mt-2 mb-6 text-gray-700 dark:text-gray-400">
-          Radish is not a faster Redis and never will be. Measured against
-          <code class="font-mono">redis 7.4.11</code> on the same machine.
+    <!-- correctness -->
+    <section class="hair grid gap-10 border-b py-12 md:grid-cols-[0.85fr_1.15fr]">
+      <div>
+        <h2 class="font-inter-tight text-2xl font-bold">Tested for correctness, byte for byte</h2>
+        <p class="mt-3 text-[14px] text-gray-700 dark:text-gray-400">
+          Every command Radish implements is byte-identical to Redis 7.4.11. The same seeded
+          command stream runs against a real <code class="font-mono">redis-server</code> and against
+          Radish, and the raw protocol bytes are compared. Any difference is a bug.
         </p>
-
-        <div class="overflow-x-auto rounded-xl border border-indigo-300/50 bg-white/70 shadow-sm dark:border-gray-700/60 dark:bg-gray-800/40">
-          <table class="w-full text-left text-sm">
-            <thead class="font-mono text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-500">
-              <tr class="border-b border-indigo-300/50 dark:border-gray-700/60">
-                <th class="px-4 py-3 font-medium"></th>
-                <th class="px-4 py-3 font-medium">redis</th>
-                <th class="px-4 py-3 font-medium">radish</th>
-              </tr>
-            </thead>
-            <tbody class="text-gray-700 dark:text-gray-300">
-              <tr class="border-b border-indigo-300/30 dark:border-gray-700/40">
-                <td class="px-4 py-3">point reads</td>
-                <td class="px-4 py-3 font-mono tabular-nums">1,428,571/s</td>
-                <td class="px-4 py-3 font-mono tabular-nums text-rose-600 dark:text-rose-400">333,333/s</td>
-              </tr>
-              <tr class="border-b border-indigo-300/30 dark:border-gray-700/40">
-                <td class="px-4 py-3">point writes</td>
-                <td class="px-4 py-3 font-mono tabular-nums">1,052,631/s</td>
-                <td class="px-4 py-3 font-mono tabular-nums text-rose-600 dark:text-rose-400">117,647/s</td>
-              </tr>
-              <tr class="border-b border-indigo-300/30 dark:border-gray-700/40">
-                <td class="px-4 py-3">commands</td>
-                <td class="px-4 py-3 font-mono tabular-nums">250</td>
-                <td class="px-4 py-3 font-mono tabular-nums text-rose-600 dark:text-rose-400">136</td>
-              </tr>
-              <tr class="border-b border-indigo-300/30 dark:border-gray-700/40">
-                <td class="px-4 py-3">acknowledged writes lost on crash</td>
-                <td class="px-4 py-3 font-mono tabular-nums">up to 1s</td>
-                <td class="px-4 py-3 font-mono tabular-nums text-emerald-600 dark:text-emerald-400">none</td>
-              </tr>
-              <tr>
-                <td class="px-4 py-3">servers to operate</td>
-                <td class="px-4 py-3 font-mono">yours</td>
-                <td class="px-4 py-3 font-mono text-emerald-600 dark:text-emerald-400">none</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <p class="mt-4 text-sm text-gray-600 dark:text-gray-500">
-          Roughly one order of magnitude of throughput, traded for durability and zero
-          operations. If that trade is wrong for your workload, nothing here fixes it —
-          <strong class="font-semibold text-gray-800 dark:text-gray-300">use Redis</strong>.
-          Not production ready; see the README for what is missing.
+        <p class="mt-4 text-[13px] text-gray-600 dark:text-gray-500">
+          A test suite can only assert what its author believed Redis does. That belief was wrong
+          five times. <code class="font-mono">TTL</code> rounds half-up rather than up, and
+          <code class="font-mono">GETRANGE</code> has an early-empty rule that fires before clamping.
+          The harness caught every one.
         </p>
-
-        <div class="mt-10 flex flex-wrap items-center gap-4">
-          <a
-            href={repo}
-            class="rounded-lg bg-gray-800 px-5 py-2.5 text-sm font-medium text-gray-100 transition hover:bg-gray-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400"
-          >
-            GitHub
-          </a>
-          <a
-            href={`${repo}/tree/go-implementation`}
-            class="text-sm text-gray-600 underline decoration-indigo-400/50 underline-offset-4 transition hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:text-gray-400 dark:hover:text-gray-200"
-          >
-            the original Go version
-          </a>
-        </div>
       </div>
+
+      <pre class="sh"><span class="pr">$</span> <span class="fn">bun run diff</span>
+seed <span class="ar">7</span>        <span class="st">PASS</span>  2024 commands, byte-identical
+seed <span class="ar">1234</span>     <span class="st">PASS</span>  2021 commands, byte-identical
+seed <span class="ar">42</span>       <span class="st">PASS</span>  2027 commands, byte-identical
+seed <span class="ar">8675309</span>  <span class="st">PASS</span>  2027 commands, byte-identical
+seed <span class="ar">555</span>      <span class="st">PASS</span>  2027 commands, byte-identical
+seed <span class="ar">2024</span>     <span class="st">PASS</span>  2015 commands, byte-identical
+
+<span class="cm">10 seeds · ~20,000 commands · 0 divergences</span></pre>
     </section>
 
-    <footer class="border-t border-indigo-300/40 dark:border-gray-800">
-      <div
-        class="mx-auto max-w-3xl px-4 py-8 text-center text-sm text-gray-600 sm:px-6 dark:text-gray-500"
-      >
-        made with ❤️ by
+    <!-- not -->
+    <section class="py-12">
+      <h2 class="font-inter-tight text-2xl font-bold">What this is not</h2>
+      <table class="mt-4 w-full max-w-2xl text-[13px]">
+        <tbody>
+          {missing.map(([area, commands]) => (
+            <tr class="hair border-b last:border-b-0">
+              <td class="py-1.5 pr-6 whitespace-nowrap text-gray-700 dark:text-gray-400">{area}</td>
+              <td class="py-1.5 font-mono text-gray-600 dark:text-gray-500">{commands}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p class="mt-5 max-w-2xl text-[13px] text-gray-600 dark:text-gray-500">
+        <code class="font-mono">WATCH</code> is implemented, so transactions are not structurally
+        incomplete. Durable storage is not a backup. There is no export or point-in-time restore.
+        <strong class="font-semibold text-gray-900 dark:text-gray-300">Not production ready</strong>:
+        it runs on Cloudflare but has no production miles.
+      </p>
+
+      <div class="mt-8 flex flex-wrap items-center gap-3">
         <a
-          href="https://dhr.wtf"
-          class="underline decoration-indigo-400/50 underline-offset-4 transition hover:text-gray-900 dark:hover:text-gray-200"
-          >Dhravya Shah</a
+          href={repo}
+          class="rounded-sm bg-gray-900 px-4 py-2 font-mono text-[12.5px] font-medium text-gray-100 transition hover:bg-gray-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400"
+          >github.com/Dhravya/radish</a
         >
       </div>
+    </section>
+
+    <footer class="hair border-t py-6 font-mono text-[11.5px] text-gray-500 dark:text-gray-500">
+      radish · MIT · made with ❤️ by
+      <a href="https://dhr.wtf" class="hover:text-indigo-600 dark:hover:text-indigo-300">Dhravya Shah</a>
     </footer>
   </main>
 </Layout>

@@ -3,4 +3,50 @@
 @theme {
   --font-inter: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-inter-tight: "Inter Tight", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    --hair: theme(colors.indigo.400/.35);
+    --hair-strong: theme(colors.indigo.500/.55);
+  }
+  html.dark {
+    --hair: theme(colors.indigo.300/.18);
+    --hair-strong: theme(colors.indigo.300/.4);
+  }
+}
+
+@layer components {
+  /* hairline rules instead of cards — the whole visual system */
+  .hair { border-color: var(--hair); }
+  .hair-s { border-color: var(--hair-strong); }
+
+
+  .term {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.65;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  /* terminal: dark in both themes, syntax coloured */
+  .sh {
+    background: #11131b;
+    border: 1px solid #272b3a;
+    border-radius: 6px;
+    padding: 1rem 1.15rem;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.75;
+    white-space: pre;
+    color: #d7dbe8;
+  }
+  .sh .pr { color: #5d6b8a; }      /* $ prompt   */
+  .sh .cm { color: #6b7a99; }      /* # comment  */
+  .sh .fn { color: #a5b4fc; }      /* command    */
+  .sh .st { color: #86d9a8; }      /* string/ok  */
+  .sh .ar { color: #e4b781; }      /* argument   */
 }
