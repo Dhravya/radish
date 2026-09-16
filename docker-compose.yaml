@@ -1,0 +1,27 @@
+services:
+  agent-optimize:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.example.yaml:/app/config.yaml:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - otel-collector
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.115.0
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+
+  # Demo: send synthetic traces for testing
+  # Uncomment to generate test data:
+  # synthetic-agent:
+  #   build: .
+  #   command: python -m agent_optimize.demo.generate
+  #   depends_on:
+  #     - agent-optimize
